@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fizz Kingdom — Detective Diet</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#f0c040;--red:#e03020;--dark:#080810;--panel:#10101e;
+  --border:#2a2040;--text:#e8d090;--muted:#6a5a4a;--green:#40c070;
+}
+body{
+  background:#000;
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;
+  font-family:'Courier Prime',monospace;
+  overflow:hidden;
+  cursor:default;
+}
+#game{
+  width:680px;min-height:520px;
+  background:var(--dark);
+  border:2px solid var(--border);
+  position:relative;
+  overflow:hidden;
+}
+/* scanlines */
+#game::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.07) 3px,rgba(0,0,0,0.07) 4px);
+  pointer-events:none;z-index:100;
+}
+
+/* ── SCREENS ── */
+.screen{display:none;width:100%;min-height:520px;flex-direction:column;}
+.screen.active{display:flex;}
+
+/* ── TITLE ── */
+#s-title{
+  align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 30%,#1a1030 0%,#080810 70%);
+  padding:40px 20px;text-align:center;gap:0;
+}
+.title-eyebrow{
+  font-family:'Special Elite',cursive;font-size:11px;
+  letter-spacing:5px;color:#c0932a;text-transform:uppercase;
+  margin-bottom:16px;
+  animation:fadeUp .8s ease .2s both;
+}
+.title-main{
+  font-family:'Bebas Neue',sans-serif;font-size:72px;
+  line-height:.95;letter-spacing:6px;
+  color:var(--gold);
+  text-shadow:0 0 80px rgba(240,192,64,.25);
+  animation:fadeUp .8s ease .5s both;
+}
+.title-sub{font-family:'Bebas Neue',sans-serif;font-size:36px;color:#e03020;letter-spacing:3px;}
+.title-quote{
+  font-family:'Special Elite',cursive;font-size:13px;font-style:italic;
+  color:#8a7a5a;margin:20px 0 28px;line-height:1.8;
+  animation:fadeUp .8s ease .9s both;
+}
+.btn-primary{
+  font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;
+  background:var(--gold);color:#000;border:none;
+  padding:14px 52px;cursor:pointer;
+  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+  transition:background .2s,transform .1s;
+  animation:fadeUp .8s ease 1.2s both;
+}
+.btn-primary:hover{background:#ffd060;transform:scale(1.03);}
+.btn-primary:active{transform:scale(.97);}
+
+/* ── CUTSCENE ── */
+#s-cut{
+  background:#000;align-items:center;justify-content:center;
+  padding:48px 60px;text-align:center;gap:24px;
+}
+#cut-label{
+  font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:5px;
+  color:#c0932a;
+}
+#cut-text{
+  font-family:'Special Elite',cursive;font-size:16px;
+  color:var(--text);line-height:1.9;white-space:pre-line;
+  max-width:520px;
+}
+#cut-speaker{
+  font-family:'Bebas Neue',sans-serif;font-size:13px;
+  letter-spacing:3px;color:var(--gold);margin-bottom:6px;
+}
+#cut-continue{
+  font-family:'Special Elite',cursive;font-size:12px;color:var(--muted);
+  animation:blink 1.2s step-end infinite;margin-top:8px;
+}
+
+/* ── PUZZLE FRAME ── */
+#s-puzzle{flex-direction:column;}
+#puzzle-header{
+  background:rgba(10,8,24,.97);
+  border-bottom:2px solid var(--border);
+  padding:10px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+#puzzle-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold);letter-spacing:3px;}
+#puzzle-step{font-family:'Special Elite',cursive;font-size:11px;color:var(--muted);}
+#puzzle-body{flex:1;padding:24px;display:flex;flex-direction:column;gap:16px;}
+#puzzle-clue-bar{
+  font-family:'Special Elite',cursive;font-size:13px;
+  color:#8a7a5a;font-style:italic;line-height:1.6;
+  border-left:3px solid #c0932a;padding-left:14px;
+}
+#puzzle-hint{font-size:11px;color:var(--muted);margin-top:-8px;font-style:italic;}
+#puzzle-area{flex:1;display:flex;align-items:center;justify-content:center;}
+#puzzle-feedback{
+  font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;
+  min-height:22px;text-align:center;transition:color .3s;
+}
+
+/* ── BOSS BATTLE ── */
+#s-boss{
+  background:linear-gradient(180deg,#04020a 0%,#100010 60%,#04020a 100%);
+  align-items:center;justify-content:center;padding:20px;
+  gap:12px;
+}
+#boss-name{font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--red);letter-spacing:5px;text-shadow:0 0 30px rgba(220,30,20,.4);}
+.battle-arena{display:flex;width:100%;gap:20px;align-items:center;justify-content:center;}
+.fighter{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;}
+.fighter-name{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--gold);}
+.hp-bar-wrap{width:100%;height:16px;background:#1a0808;border:1px solid #400020;border-radius:2px;overflow:hidden;}
+.hp-bar{height:100%;border-radius:2px;transition:width .5s ease;}
+.hp-text{font-size:11px;color:var(--muted);font-family:'Special Elite',cursive;}
+.fighter-art{width:100px;height:100px;position:relative;}
+.vs{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#3a1020;flex-shrink:0;}
+#battle-log{
+  width:100%;background:rgba(10,6,20,.95);border:1px solid var(--border);
+  padding:10px 14px;font-family:'Special Elite',cursive;font-size:13px;
+  color:var(--text);line-height:1.6;min-height:52px;
+}
+#battle-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;}
+.battle-btn{
+  font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;
+  background:rgba(20,15,30,.9);color:var(--text);
+  border:1px solid var(--border);padding:12px 6px;
+  cursor:pointer;transition:all .18s;text-align:center;
+}
+.battle-btn:hover:not(:disabled){background:rgba(192,147,42,.2);border-color:var(--gold);color:var(--gold);}
+.battle-btn:disabled{opacity:.35;cursor:not-allowed;}
+.battle-btn.expose{border-color:#40c070;color:#40c070;}
+.battle-btn.expose:hover:not(:disabled){background:rgba(64,192,112,.15);}
+
+/* ── ENDING ── */
+#s-end{background:#040a04;align-items:center;justify-content:center;padding:40px 60px;gap:20px;text-align:center;}
+#end-title{font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--green);letter-spacing:4px;}
+#end-text{font-family:'Special Elite',cursive;font-size:14px;color:#80b880;line-height:1.9;max-width:480px;font-style:italic;}
+
+/* ── CREDITS ── */
+#s-credits{background:#000;align-items:center;justify-content:center;padding:40px;gap:14px;text-align:center;}
+
+/* ── PUZZLE COMPONENTS ── */
+
+/* Puzzle 1: Cipher */
+.cipher-grid{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+.cipher-cell{
+  width:46px;height:46px;background:#10101e;border:1px solid #2a2040;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;border-radius:2px;
+}
+.cipher-encoded{font-size:16px;color:#c0932a;}
+.cipher-decoded{font-size:11px;color:var(--green);min-height:13px;font-weight:700;}
+
+.cipher-keyboard{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:10px;}
+.cipher-key{
+  width:36px;height:36px;background:#181828;border:1px solid #2a2040;
+  font-family:'Courier Prime',monospace;font-size:13px;color:var(--text);
+  cursor:pointer;border-radius:2px;transition:all .15s;
+}
+.cipher-key:hover{background:#282840;border-color:#c0932a;color:var(--gold);}
+.cipher-key.selected{background:#c0932a;color:#000;border-color:var(--gold);}
+.cipher-answer{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.cipher-slot{
+  width:36px;height:36px;background:#08080e;border-bottom:2px solid #c0932a;
+  font-size:18px;font-weight:700;color:var(--gold);text-align:center;line-height:36px;
+  cursor:pointer;transition:border-color .15s;
+}
+.cipher-slot:hover{border-color:var(--red);}
+.cipher-slot.filled{background:#0e0e1e;}
+
+/* Puzzle 2: Shadow match */
+.shadow-wrap{display:flex;gap:30px;align-items:flex-start;justify-content:center;width:100%;}
+.shadow-col{display:flex;flex-direction:column;gap:10px;align-items:center;}
+.shadow-label{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--muted);}
+.shadow-item{
+  width:120px;height:52px;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Special Elite',cursive;font-size:12px;
+  cursor:pointer;border-radius:2px;position:relative;transition:all .2s;
+  text-align:center;padding:4px;
+}
+.shadow-item.clue{background:#0e0c1a;color:#c0932a;border-color:#3a2a50;}
+.shadow-item.clue:hover{border-color:#c0932a;background:#1a1628;}
+.shadow-item.clue.selected{background:#1a1020;border-color:var(--gold);color:var(--gold);}
+.shadow-item.source{background:#08080e;color:#404060;}
+.shadow-item.matched{background:#0a1a0a;border-color:var(--green);color:var(--green);}
+.shadow-item.wrong{background:#1a0808;border-color:var(--red);color:var(--red);}
+
+/* Puzzle 3: Pipe/flow puzzle */
+.pipe-grid{display:grid;gap:2px;}
+.pipe-cell{
+  width:54px;height:54px;background:#0c0c1c;border:1px solid #1a1a2e;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border-radius:2px;position:relative;transition:background .15s;
+  font-size:22px;user-select:none;
+}
+.pipe-cell:hover{background:#141424;}
+.pipe-cell.source{background:#0a1a0a;border-color:#2a4a2a;cursor:default;}
+.pipe-cell.sink{background:#1a0a0a;border-color:#4a2a2a;cursor:default;}
+.pipe-cell.active{background:#0a200a;border-color:var(--green);}
+.pipe-cell.active-red{background:#200a0a;border-color:var(--red);}
+
+/* Puzzle 4: Memory / timeline */
+.timeline-items{display:flex;flex-direction:column;gap:8px;width:100%;}
+.tl-item{
+  display:flex;align-items:center;gap:10px;
+  background:#10101e;border:1px solid var(--border);
+  padding:10px 14px;cursor:grab;border-radius:2px;
+  font-family:'Special Elite',cursive;font-size:13px;color:var(--text);
+  transition:all .18s;user-select:none;
+}
+.tl-item:active{cursor:grabbing;}
+.tl-item:hover{border-color:#c0932a;background:#18162a;}
+.tl-item.dragging{opacity:.5;border-color:var(--gold);}
+.tl-num{
+  font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted);
+  flex-shrink:0;width:20px;
+}
+.tl-item.correct{border-color:var(--green);background:#0a1a0a;}
+.tl-item.wrong-pos{border-color:var(--red);background:#1a0a0a;}
+
+/* Boss SVG art */
+.can-art{width:100%;height:100%;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes blink{50%{opacity:0;}}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
+@keyframes glow{0%,100%{text-shadow:0 0 30px rgba(220,30,20,.4);}50%{text-shadow:0 0 60px rgba(220,30,20,.8);}}
+.shake{animation:shake .3s ease;}
+.glow{animation:glow 2s ease infinite;}
+</style>
+</head>
+<body>
+<div id="game">
+
+<!-- TITLE -->
+<div id="s-title" class="screen active">
+  <div class="title-eyebrow">A Detective Diet Mystery</div>
+  <div class="title-main">FIZZ<br><span class="title-sub">KINGDOM</span></div>
+  <div class="title-quote">
+    "They call it Fizz Kingdom…<br>
+    a place built on sweetness.<br>
+    But in this kingdom…<br>
+    what looks harmless… rarely is."
+  </div>
+  <button class="btn-primary" onclick="G.startGame()">Begin Investigation</button>
+</div>
+
+<!-- CUTSCENE -->
+<div id="s-cut" class="screen">
+  <div id="cut-label"></div>
+  <div id="cut-speaker"></div>
+  <div id="cut-text"></div>
+  <div id="cut-continue">▼ Click or press ENTER to continue</div>
+</div>
+
+<!-- PUZZLE -->
+<div id="s-puzzle" class="screen">
+  <div id="puzzle-header">
+    <div id="puzzle-title">PUZZLE</div>
+    <div id="puzzle-step">Case File</div>
+  </div>
+  <div id="puzzle-body">
+    <div id="puzzle-clue-bar"></div>
+    <div id="puzzle-hint"></div>
+    <div id="puzzle-area"></div>
+    <div id="puzzle-feedback"></div>
+  </div>
+</div>
+
+<!-- BOSS -->
+<div id="s-boss" class="screen">
+  <div id="boss-name" class="glow">THE SUGAR KING</div>
+  <div class="battle-arena">
+    <div class="fighter">
+      <div class="fighter-name">Detective Diet</div>
+      <div class="fighter-art">
+        <svg viewBox="0 0 80 100" class="can-art" xmlns="http://www.w3.org/2000/svg">
+          <rect x="20" y="10" width="40" height="72" rx="6" fill="#b0c8e0"/>
+          <rect x="22" y="8" width="36" height="8" rx="4" fill="#d0e8f8"/>
+          <rect x="22" y="74" width="36" height="8" rx="4" fill="#8090a8"/>
+          <rect x="20" y="36" width="40" height="20" fill="#3070c0"/>
+          <rect x="24" y="40" width="32" height="10" fill="#fff" rx="1"/>
+          <text x="40" y="48" text-anchor="middle" font-family="monospace" font-size="7" font-weight="bold" fill="#3070c0">DIET</text>
+          <rect x="18" y="4" width="44" height="6" rx="3" fill="#304060"/>
+          <rect x="24" y="22" width="14" height="12" rx="2" fill="#d0e8f8"/>
+          <circle cx="28" cy="26" r="2" fill="#203060"/>
+          <circle cx="35" cy="26" r="2" fill="#203060"/>
+          <!-- magnifying glass -->
+          <circle cx="60" cy="55" r="9" fill="none" stroke="#8ab0d0" stroke-width="2"/>
+          <line x1="66" y1="61" x2="72" y2="68" stroke="#8ab0d0" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="hp-bar-wrap"><div id="player-hp-bar" class="hp-bar" style="width:100%;background:linear-gradient(90deg,#20c040,#60e080);"></div></div>
+      <div id="player-hp-text" class="hp-text">100 / 100</div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="fighter">
+      <div class="fighter-name">Sugar King</div>
+      <div class="fighter-art">
+        <svg viewBox="0 0 80 100" class="can-art" xmlns="http://www.w3.org/2000/svg" id="boss-svg">
+          <rect x="15" y="20" width="50" height="65" rx="4" fill="#8a1020"/>
+          <rect x="20" y="16" width="40" height="70" rx="4" fill="#c82030"/>
+          <!-- crown -->
+          <polygon points="20,18 28,4 36,14 44,2 52,14 60,4 60,18" fill="#c0932a"/>
+          <circle cx="28" cy="5" r="3" fill="#e03020"/>
+          <circle cx="44" cy="3" r="3" fill="#e03020"/>
+          <circle cx="60" cy="5" r="3" fill="#e03020"/>
+          <!-- face -->
+          <rect x="24" y="26" width="32" height="22" rx="3" fill="#d09070"/>
+          <ellipse cx="33" cy="34" rx="4" ry="4" fill="#e03020" id="boss-eye-l"/>
+          <ellipse cx="47" cy="34" rx="4" ry="4" fill="#e03020" id="boss-eye-r"/>
+          <rect x="28" y="44" width="24" height="2" fill="#4a2010" rx="1"/>
+          <!-- scepter -->
+          <rect x="62" y="28" width="4" height="36" rx="2" fill="#c0932a"/>
+          <circle cx="64" cy="26" r="6" fill="#e85040"/>
+        </svg>
+      </div>
+      <div class="hp-bar-wrap"><div id="boss-hp-bar" class="hp-bar" style="width:100%;background:linear-gradient(90deg,#e03020,#ff5040);"></div></div>
+      <div id="boss-hp-text" class="hp-text">120 / 120</div>
+    </div>
+  </div>
+  <div id="battle-log">The Sugar King laughs. "You can't stop sweetness, Detective."</div>
+  <div id="battle-actions">
+    <button class="battle-btn" onclick="G.battle.act(0)">⚔ Attack<br><span style="font-size:10px;color:#6a5a4a;">12-18 dmg</span></button>
+    <button class="battle-btn" onclick="G.battle.act(1)">🛡 Defend<br><span style="font-size:10px;color:#6a5a4a;">Halve next hit</span></button>
+    <button class="battle-btn expose" onclick="G.battle.act(2)" id="expose-btn">📋 Expose Truth<br><span style="font-size:10px;color:#40c070;">35 dmg (once)</span></button>
+    <button class="battle-btn" onclick="G.battle.act(3)">🥤 Recover<br><span style="font-size:10px;color:#6a5a4a;">Heal 20-28</span></button>
+  </div>
+</div>
+
+<!-- ENDING -->
+<div id="s-end" class="screen">
+  <div id="end-title">CASE CLOSED</div>
+  <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <rect x="25" y="8" width="30" height="52" rx="6" fill="#1a3a1a" stroke="#60d080" stroke-width="1.5"/>
+    <rect x="30" y="4" width="20" height="8" rx="3" fill="#1a3a1a" stroke="#60d080" stroke-width="1.5"/>
+    <text x="40" y="38" text-anchor="middle" fill="#60d080" font-family="'Bebas Neue',sans-serif" font-size="10" letter-spacing="1">DIET</text>
+    <circle cx="40" cy="70" r="8" fill="#40c060" opacity=".8"/>
+    <text x="40" y="74" text-anchor="middle" fill="#000" font-size="10">✓</text>
+  </svg>
+  <div id="end-text"></div>
+  <button class="btn-primary" onclick="G.startGame()" style="background:#40c070;margin-top:8px;">Play Again</button>
+</div>
+
+<!-- CREDITS -->
+<div id="s-credits" class="screen">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:4px;color:#c0932a;">CREDITS</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold);">FIZZ KINGDOM</div>
+  <div style="font-family:'Special Elite',cursive;font-size:13px;color:#6a5a4a;line-height:1.9;">
+    Created as an AP Lang class project<br>
+    Arguing that Diet Soda was the most important<br>
+    innovation at the 1893 World's Fair<br><br>
+    Inspired by <em>Devil in the White City</em><br>
+    by Erik Larson
+  </div>
+  <button class="btn-primary" onclick="G.goto('title')" style="margin-top:8px;">Back to Title</button>
+</div>
+
+</div><!-- #game -->
+
+<script>
+// ═══════════════════════════════════════════════════
+//  FIZZ KINGDOM PUZZLE GAME  —  full engine
+// ═══════════════════════════════════════════════════
+
+const $ = id => document.getElementById(id);
+
+const G = {
+  // ── screen manager ──────────────────────────────
+  goto(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $('s-' + id).classList.add('active');
+  },
+
+  // ── cutscene queue ───────────────────────────────
+  _cuts: [], _cutIdx: 0, _cutAfter: null,
+  cutscene(slides, after) {
+    G._cuts = slides; G._cutIdx = 0; G._cutAfter = after;
+    G.goto('cut');
+    G._showCut(0);
+    const el = $('s-cut');
+    el.onclick = G._nextCut;
+  },
+  _showCut(i) {
+    const s = G._cuts[i];
+    $('cut-label').textContent   = s.label   || '';
+    $('cut-speaker').textContent = s.speaker || '';
+    $('cut-text').textContent    = s.text;
+    $('cut-text').style.color    = s.color || '#e8d090';
+    $('cut-text').style.fontSize = s.size  || '15px';
+  },
+  _nextCut() {
+    G._cutIdx++;
+    if (G._cutIdx >= G._cuts.length) {
+      $('s-cut').onclick = null;
+      if (G._cutAfter) G._cutAfter();
+    } else {
+      G._showCut(G._cutIdx);
+    }
+  },
+
+  // ── main start ───────────────────────────────────
+  startGame() {
+    G.puzzlesDone = 0;
+    G.cutscene([
+      { label:'SCENE 1 — OPENING', text: 'They call it Fizz Kingdom…\n\nA place built on sweetness.\nBright lights… bold flavors…\nchoices that seem harmless.', color:'#e8d090' },
+      { speaker:'DETECTIVE DIET', text: '"But in this kingdom…\nwhat looks harmless… rarely is.\n\nEvery path, every habit — leads back\nto one source. The Sugar King."\n\nFind the evidence. Expose the truth.', color:'#c8d0f0', size:'15px' },
+      { label:'INSTRUCTIONS', text: '4 Puzzles stand between you\nand the Sugar King.\n\nSolve each one to uncover\nthe clues that crack the case.', color:'#e8d090' },
+    ], () => G.loadPuzzle(0));
+  },
+
+  puzzlesDone: 0,
+  puzzles: [], // filled below
+
+  loadPuzzle(idx) {
+    const p = G.puzzles[idx];
+    G.goto('puzzle');
+    $('puzzle-title').textContent = p.title;
+    $('puzzle-step').textContent  = `Puzzle ${idx+1} of 4`;
+    $('puzzle-clue-bar').textContent = p.clue;
+    $('puzzle-hint').textContent  = '🔍 ' + p.hint;
+    $('puzzle-feedback').textContent = '';
+    $('puzzle-feedback').style.color = '#e8d090';
+    $('puzzle-area').innerHTML = '';
+    p.init($('puzzle-area'));
+  },
+
+  puzzleWin(clueText) {
+    const idx = G.puzzlesDone;
+    G.puzzlesDone++;
+    const nextIdx = G.puzzlesDone;
+    const bridge = [
+      // after puzzle 1
+      { label:'CLUE FOUND', speaker:'DETECTIVE DIET', text: `"${clueText}"\n\nThe pieces are starting to add up.\nSomething deliberate is happening here.`, color:'#90e090' },
+      // after puzzle 2
+      { label:'CLUE FOUND', speaker:'DETECTIVE DIET', text: `"${clueText}"\n\nThis wasn't random.\nEvery path in Fizz Kingdom\nleads back to one source.`, color:'#90e090' },
+      // after puzzle 3
+      { label:'CLUE FOUND', speaker:'DETECTIVE DIET', text: `"${clueText}"\n\nThat's three pieces of evidence.\nThe Sugar King is behind all of it.\n\nTime to confront him.`, color:'#90e090' },
+      // after puzzle 4 -> boss
+      { label:'CONFRONTATION', speaker:'DETECTIVE DIET', text: `"${clueText}"\n\nAll four clues confirmed.\nThe Sugar King engineered every craving\nin Fizz Kingdom.\n\nThere's only one move left —\nfind him and expose the truth.`, color:'#f0c040' },
+    ];
+
+    G.cutscene(
+      [bridge[idx]],
+      nextIdx < 4 ? () => G.loadPuzzle(nextIdx)
+                  : G.enterBoss
+    );
+  },
+
+  // ── BOSS BATTLE ──────────────────────────────────
+  enterBoss() {
+    G.cutscene([
+      { label:'SUGAR TOWER — THRONE ROOM', text: 'The doors open.\nThe Sugar King sits at the center\nof everything he built.', color:'#e03020' },
+      { speaker:'SUGAR KING', text: '"Well, well. Detective Diet.\nThe imperfect little alternative\nwho dares challenge the real thing."', color:'#e8b0b0', size:'15px' },
+      { speaker:'DETECTIVE DIET', text: '"I have the formula, the receipts,\nthe testimony, and the pattern.\nYou engineered the craving.\nYou removed the choice.\n\nFizz Kingdom deserves the truth."', color:'#c8d8f8', size:'15px' },
+      { speaker:'SUGAR KING', text: '"Then prove it.\nIf you can beat me, Detective —\nthe kingdom is yours to save."', color:'#e8b0b0' },
+    ], G.battle.start);
+  },
+
+  battle: {
+    php: 100, bhp: 120, defending: false, exposeUsed: false, busy: false,
+    start() {
+      G.battle.php = 100; G.battle.bhp = 120;
+      G.battle.defending = false; G.battle.exposeUsed = false; G.battle.busy = false;
+      $('expose-btn').disabled = false;
+      G.battle.updateBars();
+      $('battle-log').textContent = 'The Sugar King sneers. "You can\'t stop sweetness, Detective."';
+      document.querySelectorAll('.battle-btn').forEach(b => b.disabled = false);
+      G.goto('boss');
+    },
+    updateBars() {
+      const b = G.battle;
+      $('player-hp-bar').style.width = Math.max(0, b.php / 100 * 100) + '%';
+      $('player-hp-text').textContent = `${Math.max(0,Math.ceil(b.php))} / 100`;
+      $('boss-hp-bar').style.width   = Math.max(0, b.bhp / 120 * 100) + '%';
+      $('boss-hp-text').textContent  = `${Math.max(0,Math.ceil(b.bph))} / 120`;
+      $('player-hp-bar').style.background = b.php > 50 ? 'linear-gradient(90deg,#20c040,#60e080)' : b.php > 25 ? 'linear-gradient(90deg,#c0a020,#e0c040)' : 'linear-gradient(90deg,#c02020,#e04040)';
+    },
+    setButtons(on) {
+      document.querySelectorAll('.battle-btn').forEach(b => { if(!b.dataset.perm) b.disabled = !on; });
+    },
+    log(msg, col) {
+      $('battle-log').textContent = msg;
+      $('battle-log').style.color = col || '#e8d090';
+    },
+    act(idx) {
+      const b = G.battle;
+      if (b.busy) return;
+      b.busy = true;
+      b.setButtons(false);
+      b.defending = false;
+      let msg = '';
+      switch(idx) {
+        case 0: { // Attack
+          const dmg = 12 + Math.floor(Math.random()*7);
+          b.bhp = Math.max(0, b.bhp - dmg);
+          msg = `Detective Diet presents evidence — ${dmg} damage!`;
+          $('boss-svg').style.animation = 'shake .3s ease';
+          setTimeout(()=>{ $('boss-svg').style.animation=''; },400);
+          break;
+        }
+        case 1: // Defend
+          b.defending = true;
+          msg = 'Detective Diet braces for impact — defense up!';
+          break;
+        case 2: // Expose
+          if (!b.exposeUsed) {
+            b.bhp = Math.max(0, b.bhp - 35);
+            msg = '✦ EXPOSE TRUTH! The four clues shine as one — 35 critical damage!';
+            $('expose-btn').disabled = true;
+            $('expose-btn').dataset.perm = 'true';
+            b.exposeUsed = true;
+          }
+          break;
+        case 3: { // Recover
+          const heal = 20 + Math.floor(Math.random()*9);
+          b.php = Math.min(100, b.php + heal);
+          msg = `Diet Soda restores ${heal} HP — less, but still enough.`;
+          break;
+        }
+      }
+      b.log(msg);
+      b.updateBars();
+
+      if (b.bhp <= 0) { setTimeout(G.battle.victory, 900); return; }
+
+      // Boss turn
+      setTimeout(() => {
+        const roll = Math.random();
+        let bdmg, bmsg;
+        if (roll < .33) {
+          bdmg = b.defending ? 4 : 16 + Math.floor(Math.random()*8);
+          bmsg = b.defending ? `Sugar Rush blocked! Only ${bdmg} damage.` : `Sugar Rush hits for ${bdmg} damage!`;
+        } else if (roll < .66) {
+          bdmg = b.defending ? 3 : 20 + Math.floor(Math.random()*6);
+          bmsg = b.defending ? `Dependency Aura deflected! Only ${bdmg} damage.` : `Dependency Aura drains ${bdmg} HP!`;
+        } else {
+          bdmg = b.defending ? 0 : 12;
+          bmsg = b.defending ? `Royal Decree blocked completely!` : `Royal Decree — ${bdmg} damage and confusion!`;
+        }
+        b.php = Math.max(0, b.php - bdmg);
+        b.log('SUGAR KING: ' + bmsg, '#e8b0b0');
+        b.updateBars();
+        if (b.php <= 0) { setTimeout(G.battle.defeat, 900); return; }
+        b.busy = false;
+        b.setButtons(true);
+      }, 900);
+    },
+    victory() {
+      G.cutscene([
+        { label:'VICTORY', text: 'The Sugar King falls.\n\nThe four clues — public.\nThe formula — exposed.\nThe kingdom — free to choose.', color:'#60e080', size:'16px' },
+        { speaker:'DETECTIVE DIET', text: '"I don\'t promise perfection.\nBut I don\'t overload the system either.\n\nLess sugar. Less damage.\nA chance to choose… differently.\n\nIn a kingdom built on excess —\nsometimes the alternative matters."', color:'#c8d8f8', size:'14px' },
+        { label:'THE THEME', text: 'Sugar = excess, control, dependency.\n\nDiet Soda = not perfect.\nBut a meaningful alternative\nin a system designed to harm.\n\nThe kingdom was built\nto normalize harmful choices.\nExposing the Sugar King\nreveals how the system works.', color:'#f0c040', size:'14px' },
+      ], G.showEnding);
+    },
+    defeat() {
+      G.cutscene([
+        { label:'GAME OVER', text: 'Detective Diet falls.\n\nThe Sugar King tightens his grip\non Fizz Kingdom.\n\nThe kingdom stays dependent.', color:'#e03020' },
+      ], () => G.goto('title'));
+    },
+  },
+
+  showEnding() {
+    G.goto('end');
+    $('end-text').textContent =
+`"The Sugar King's records went public.
+Every citizen saw the formula.
+For the first time in Fizz Kingdom history…
+they got to choose.
+
+Not because Diet was perfect.
+But because the alternative mattered."
+
+— Detective Diet, Case File #1893`;
+    setTimeout(() => G.goto('credits'), 6000);
+  },
+};
+
+// key handler for cutscenes
+window.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    const cut = $('s-cut');
+    if (cut.classList.contains('active') && cut.onclick) { cut.onclick(); e.preventDefault(); }
+  }
+});
+
+// ═══════════════════════════════════════════════════
+//  PUZZLE DEFINITIONS
+// ═══════════════════════════════════════════════════
+
+G.puzzles = [
+
+// ─────────────────────────────────────────────────
+// PUZZLE 1: CIPHER DECODER
+// Decode the Sugar King's secret message
+// Each symbol maps to a letter; player builds the answer
+// ─────────────────────────────────────────────────
+{
+  title: 'DECODE THE MESSAGE',
+  clue:  '"A coded order was intercepted leaving the palace. Decode it to reveal the Sugar King\'s command."',
+  hint:  'Match each symbol to a letter. Click a symbol, then click a letter below.',
+
+  init(area) {
+    // Encoded: FORMULA = ▲ ◆ ★ ⬟ ▲ ☆ ▲  -> we show 6 encoded chars, answer = "ADDICT"
+    // symbols: ▲=A, ◆=D, ★=D, ⬟=I, ☆=C, ●=T  -> answer ADDICT
+    const code = [
+      {sym:'▲', letter:'A'},
+      {sym:'◆', letter:'D'},
+      {sym:'◆', letter:'D'},
+      {sym:'⬟', letter:'I'},
+      {sym:'☆', letter:'C'},
+      {sym:'●', letter:'T'},
+    ];
+    const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const answer = code.map(c=>c.letter).join('');
+    let built = Array(6).fill('');
+    let selectedSlot = null;
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText='display:flex;flex-direction:column;gap:14px;align-items:center;width:100%;';
+
+    // Encoded symbols row
+    const symRow = document.createElement('div');
+    symRow.style.cssText='display:flex;gap:10px;';
+    code.forEach((c,i) => {
+      const cell = document.createElement('div');
+      cell.className='cipher-cell';
+      cell.innerHTML=`<span class="cipher-encoded">${c.sym}</span><span class="cipher-decoded" id="slot-${i}"></span>`;
+      cell.title = `Symbol ${i+1}`;
+      symRow.appendChild(cell);
+    });
+
+    // "Your answer" slots
+    const slotRow = document.createElement('div');
+    slotRow.className='cipher-answer';
+    for(let i=0;i<6;i++){
+      const sl = document.createElement('div');
+      sl.className='cipher-slot';sl.id=`ans-${i}`;
+      sl.textContent='_';
+      sl.onclick=()=>{
+        // clear this slot
+        built[i]='';
+        sl.textContent='_';sl.classList.remove('filled');
+        $('puzzle-feedback').textContent='';
+        checkAnswer();
+      };
+      slotRow.appendChild(sl);
+    }
+
+    // Alphabet keyboard — with click-to-fill mechanic
+    // Click a letter → fills next empty slot
+    const kb = document.createElement('div');
+    kb.className='cipher-keyboard';
+    // Only show relevant + decoy letters
+    const shown = ['A','B','C','D','E','F','G','I','K','M','N','O','R','S','T','U','X','Z'];
+    shown.forEach(l => {
+      const btn = document.createElement('button');
+      btn.className='cipher-key';btn.textContent=l;
+      btn.onclick=()=>{
+        // fill next empty
+        const next = built.indexOf('');
+        if(next===-1)return;
+        built[next]=l;
+        $(`ans-${next}`).textContent=l;
+        $(`ans-${next}`).classList.add('filled');
+        // also show in sym row
+        const expected = code[next].letter;
+        $(`slot-${next}`).textContent=l;
+        $(`slot-${next}`).style.color = l===expected?'#40c070':'#e03020';
+        checkAnswer();
+      };
+      kb.appendChild(btn);
+    });
+
+    // backspace
+    const bk = document.createElement('button');
+    bk.className='cipher-key';bk.textContent='←';bk.style.width='54px';
+    bk.onclick=()=>{
+      let last=-1;
+      for(let i=5;i>=0;i--){ if(built[i]!==''){last=i;break;} }
+      if(last===-1)return;
+      built[last]='';
+      $(`ans-${last}`).textContent='_';$(`ans-${last}`).classList.remove('filled');
+      $(`slot-${last}`).textContent='';
+      $('puzzle-feedback').textContent='';
+    };
+    kb.appendChild(bk);
+
+    function checkAnswer(){
+      if(built.indexOf('')!==-1)return;
+      const guess=built.join('');
+      if(guess===answer){
+        $('puzzle-feedback').textContent='✦ CORRECT — Formula decoded: the citizens were meant to ADDICT.';
+        $('puzzle-feedback').style.color='#40c070';
+        setTimeout(()=>G.puzzleWin('Coded Royal Order: "ADDICT" — the Sugar King\'s formula was built to hook, not satisfy.'),1400);
+      } else {
+        $('puzzle-feedback').textContent='✗ Incorrect. Clear a letter and try again.';
+        $('puzzle-feedback').style.color='#e03020';
+      }
+    }
+
+    wrap.appendChild(symRow);
+    const hint2=document.createElement('div');
+    hint2.style.cssText='font-family:Special Elite,cursive;font-size:11px;color:#5a4a3a;text-align:center;';
+    hint2.textContent='Click letters below to fill in the decoded message. ← to erase.';
+    wrap.appendChild(hint2);
+    wrap.appendChild(slotRow);
+    wrap.appendChild(kb);
+    area.appendChild(wrap);
+  },
+},
+
+// ─────────────────────────────────────────────────
+// PUZZLE 2: MATCH THE EVIDENCE
+// Connect each piece of evidence to its meaning
+// ─────────────────────────────────────────────────
+{
+  title: 'CONNECT THE EVIDENCE',
+  clue:  '"Three pieces of evidence were found at the scene. Match each clue to what it proves about the Sugar King."',
+  hint:  'Click an evidence item (left), then click its matching meaning (right).',
+
+  init(area) {
+    const pairs = [
+      { clue: 'Royal receipt for\n10,000 formula cans', meaning: 'Mass distribution\nwas planned' },
+      { clue: 'Sticky footprints from\nfactory to palace', meaning: 'Sugar King controls\nproduction & supply' },
+      { clue: 'Lab notes: "remove\nsatiety response"', meaning: 'Citizens engineered\nto crave more' },
+    ];
+    // shuffle meanings
+    const meanings = [...pairs.map(p=>p.meaning)].sort(()=>Math.random()-.5);
+
+    let selected = null;
+    let matched = new Array(3).fill(false);
+    let matchCount = 0;
+
+    const wrap=document.createElement('div');
+    wrap.className='shadow-wrap';
+
+    const leftCol=document.createElement('div');
+    leftCol.className='shadow-col';
+    const lLabel=document.createElement('div');lLabel.className='shadow-label';lLabel.textContent='EVIDENCE';
+    leftCol.appendChild(lLabel);
+
+    const rightCol=document.createElement('div');
+    rightCol.className='shadow-col';
+    const rLabel=document.createElement('div');rLabel.className='shadow-label';rLabel.textContent='WHAT IT PROVES';
+    rightCol.appendChild(rLabel);
+
+    pairs.forEach((p,i)=>{
+      const item=document.createElement('div');
+      item.className='shadow-item clue';
+      item.innerHTML=p.clue.replace('\n','<br>');
+      item.dataset.idx=i;
+      item.onclick=()=>{
+        if(matched[i])return;
+        document.querySelectorAll('.shadow-item.clue').forEach(x=>x.classList.remove('selected'));
+        item.classList.add('selected');
+        selected=i;
+      };
+      leftCol.appendChild(item);
+    });
+
+    meanings.forEach((m,j)=>{
+      const item=document.createElement('div');
+      item.className='shadow-item source';
+      item.innerHTML=m.replace('\n','<br>');
+      item.dataset.meaning=m;
+      item.onclick=()=>{
+        if(selected===null)return;
+        const correctMeaning=pairs[selected].meaning;
+        if(m===correctMeaning){
+          // correct
+          item.classList.add('matched');
+          item.style.cursor='default';
+          const leftItems=document.querySelectorAll('.shadow-item.clue');
+          leftItems[selected].classList.remove('selected');
+          leftItems[selected].classList.add('matched');
+          matched[selected]=true;
+          selected=null;
+          matchCount++;
+          $('puzzle-feedback').textContent=`✦ Match ${matchCount}/3 correct!`;
+          $('puzzle-feedback').style.color='#40c070';
+          if(matchCount===3){
+            setTimeout(()=>G.puzzleWin('All evidence connected: the Sugar King planned, distributed, and engineered dependence deliberately.'),1200);
+          }
+        } else {
+          item.classList.add('wrong');
+          $('puzzle-feedback').textContent='✗ That connection doesn\'t hold. Try again.';
+          $('puzzle-feedback').style.color='#e03020';
+          setTimeout(()=>item.classList.remove('wrong'),700);
+          selected=null;
+          document.querySelectorAll('.shadow-item.clue').forEach(x=>x.classList.remove('selected'));
+        }
+      };
+      rightCol.appendChild(item);
+    });
+
+    wrap.appendChild(leftCol);
+    wrap.appendChild(rightCol);
+    area.appendChild(wrap);
+  },
+},
+
+// ─────────────────────────────────────────────────
+// PUZZLE 3: PIPE / FLOW PUZZLE
+// Rotate pipe segments to route "truth" to the palace
+// 5×5 grid, player rotates cells to connect source → sink
+// ─────────────────────────────────────────────────
+{
+  title: 'ROUTE THE TRUTH',
+  clue:  '"The Sugar King\'s control network has 5 nodes. Connect the evidence signal from the source to the palace to expose him."',
+  hint:  'Click cells to rotate the pipe. Connect SOURCE (green) to PALACE (red) without breaks.',
+
+  init(area) {
+    // Pipe types: 0=empty, 1=straight(─), 2=straight(│), 3=corner(┘), 4=corner(└), 5=corner(┐), 6=corner(┌), 7=T(├), 8=cross(┼)
+    // We'll use simpler approach: each cell has 4 connection booleans [N,E,S,W] and player rotates
+    // We'll define a solvable 5x5 board
+    // Source at (0,2), Sink at (4,2)
+    // Solution path: (0,2)→(1,2)→(2,2)→(3,2)→(4,2) — straight line
+    // But we start with random rotations so player must fix
+
+    const ROWS=5,COLS=5;
+    const SRC={r:2,c:0}, SNK={r:2,c:4};
+
+    // Cell types: array of [N,E,S,W] connections
+    const TYPES = {
+      'straight-h': [0,1,0,1], // ─
+      'straight-v': [1,0,1,0], // │
+      'corner-ne':  [1,1,0,0], // └
+      'corner-nw':  [1,0,0,1], // ┘
+      'corner-se':  [0,1,1,0], // ┌
+      'corner-sw':  [0,0,1,1], // ┐
+      'tee-e':      [1,1,1,0], // ├
+      'tee-w':      [1,0,1,1], // ┤
+      'cross':      [1,1,1,1], // ┼
+      'empty':      [0,0,0,0],
+    };
+
+    // Glyphs
+    const GLYPH = {
+      'straight-h':'━','straight-v':'┃',
+      'corner-ne':'┗','corner-nw':'┛','corner-se':'┏','corner-sw':'┓',
+      'tee-e':'┣','tee-w':'┫','cross':'╋','empty':'·'
+    };
+
+    // Rotation: rotate connections [N,E,S,W] -> [W,N,E,S] (90° CW)
+    function rotate(typeKey) {
+      const typeOrder = ['straight-h','straight-v','corner-ne','corner-nw','corner-se','corner-sw','tee-e','tee-w'];
+      const rotMap = {
+        'straight-h':'straight-v','straight-v':'straight-h',
+        'corner-ne':'corner-nw','corner-nw':'corner-sw','corner-sw':'corner-se','corner-se':'corner-ne',
+        'tee-e':'tee-n','tee-n':'tee-w','tee-w':'tee-s','tee-s':'tee-e','cross':'cross','empty':'empty',
+        'tee-n':'straight-h', // fallback
+      };
+      // Proper rotation of [N,E,S,W]
+      const c = TYPES[typeKey] || [0,0,0,0];
+      const rotated = [c[3],c[0],c[1],c[2]]; // CW: W->N, N->E, E->S, S->W
+      // Find matching type
+      for(const [k,v] of Object.entries(TYPES)){
+        if(v[0]===rotated[0]&&v[1]===rotated[1]&&v[2]===rotated[2]&&v[3]===rotated[3]) return k;
+      }
+      return typeKey;
+    }
+
+    // Board: [type, connections copy]
+    // Pre-set solution then scramble non-special cells
+    const solutionRow = ['straight-h','straight-h','straight-h','straight-h','straight-h'];
+    const board = [];
+    const piecePool = ['straight-h','straight-v','corner-ne','corner-nw','corner-se','corner-sw'];
+
+    for(let r=0;r<ROWS;r++){
+      board.push([]);
+      for(let c=0;c<COLS;c++){
+        if(r===SRC.r && c===SRC.c){ board[r].push('straight-h'); continue; }
+        if(r===SNK.r && c===SNK.c){ board[r].push('straight-h'); continue; }
+        if(r===2){ // solution row — start scrambled
+          let t = 'straight-h';
+          // rotate randomly 0-3 times
+          const times = Math.floor(Math.random()*3)+1;
+          for(let i=0;i<times;i++) t=rotate(t);
+          board[r].push(t);
+        } else {
+          // filler pieces
+          const t = piecePool[Math.floor(Math.random()*piecePool.length)];
+          board[r].push(t);
+        }
+      }
+    }
+
+    // Check connectivity: BFS from source following connections
+    function isConnected(b) {
+      const conn = (r,c) => {
+        const t = b[r] && b[r][c];
+        return TYPES[t] || [0,0,0,0];
+      };
+      const visited = Array.from({length:ROWS},()=>Array(COLS).fill(false));
+      const queue = [[SRC.r,SRC.c]];
+      visited[SRC.r][SRC.c]=true;
+      const dirs = [[-1,0,0,2],[0,1,1,3],[1,0,2,0],[0,-1,3,1]]; // [dr,dc,myDir,theirDir] N=0,E=1,S=2,W=3
+      while(queue.length){
+        const [r,c]=queue.shift();
+        for(const [dr,dc,myD,theirD] of dirs){
+          const nr=r+dr,nc=c+dc;
+          if(nr<0||nr>=ROWS||nc<0||nc>=COLS)continue;
+          if(visited[nr][nc])continue;
+          if(conn(r,c)[myD] && conn(nr,nc)[theirD]){
+            visited[nr][nc]=true;
+            queue.push([nr,nc]);
+          }
+        }
+      }
+      return visited[SNK.r][SNK.c];
+    }
+
+    // Render
+    const grid=document.createElement('div');
+    grid.className='pipe-grid';
+    grid.style.gridTemplateColumns=`repeat(${COLS},54px)`;
+
+    const cells=[];
+    for(let r=0;r<ROWS;r++){
+      cells.push([]);
+      for(let c=0;c<COLS;c++){
+        const cell=document.createElement('div');
+        cell.className='pipe-cell';
+        const isSrc = r===SRC.r&&c===SRC.c;
+        const isSnk = r===SNK.r&&c===SNK.c;
+        if(isSrc){cell.classList.add('source');cell.title='SOURCE';}
+        if(isSnk){cell.classList.add('sink');cell.title='PALACE';}
+        cell.style.fontSize='22px';
+        cell.style.color=isSrc?'#40c070':isSnk?'#e03020':'#4060a0';
+        if(isSrc) cell.textContent='▶';
+        else if(isSnk) cell.textContent='🏰';
+        else {
+          cell.textContent=GLYPH[board[r][c]]||'·';
+          cell.onclick=()=>{
+            board[r][c]=rotate(board[r][c]);
+            cell.textContent=GLYPH[board[r][c]]||'·';
+            updateFlow();
+          };
+        }
+        grid.appendChild(cell);
+        cells[r].push(cell);
+      }
+    }
+
+    function updateFlow(){
+      // Reset colours
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+        cells[r][c].classList.remove('active','active-red');
+      }
+      // BFS flood fill from source
+      const conn=(r,c)=>TYPES[board[r][c]]||[0,0,0,0];
+      const visited=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+      const queue=[[SRC.r,SRC.c]];
+      visited[SRC.r][SRC.c]=true;
+      const dirs=[[-1,0,0,2],[0,1,1,3],[1,0,2,0],[0,-1,3,1]];
+      while(queue.length){
+        const [r,c]=queue.shift();
+        cells[r][c].classList.add('active');
+        for(const [dr,dc,myD,theirD] of dirs){
+          const nr=r+dr,nc=c+dc;
+          if(nr<0||nr>=ROWS||nc<0||nc>=COLS)continue;
+          if(visited[nr][nc])continue;
+          if(conn(r,c)[myD]&&conn(nr,nc)[theirD]){
+            visited[nr][nc]=true;
+            queue.push([nr,nc]);
+          }
+        }
+      }
+      if(visited[SNK.r][SNK.c]){
+        $('puzzle-feedback').textContent='✦ Signal connected! Truth reaches the palace!';
+        $('puzzle-feedback').style.color='#40c070';
+        setTimeout(()=>G.puzzleWin('Signal routed: the Sugar King\'s control network is fully mapped and exposed.'),1400);
+      } else {
+        $('puzzle-feedback').textContent='Connection incomplete — keep rotating…';
+        $('puzzle-feedback').style.color='#c0932a';
+      }
+    }
+
+    const wrap=document.createElement('div');
+    wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:10px;';
+
+    const legend=document.createElement('div');
+    legend.style.cssText='display:flex;gap:20px;font-size:11px;font-family:Special Elite,cursive;';
+    legend.innerHTML='<span style="color:#40c070">▶ SOURCE</span><span style="color:#4060a0">Click cells to rotate</span><span style="color:#e03020">🏰 PALACE</span>';
+
+    wrap.appendChild(legend);
+    wrap.appendChild(grid);
+    area.appendChild(wrap);
+    updateFlow();
+  },
+},
+
+// ─────────────────────────────────────────────────
+// PUZZLE 4: TIMELINE — put events in order
+// Drag-and-drop (click-to-swap) to arrange events
+// ─────────────────────────────────────────────────
+{
+  title: 'RECONSTRUCT THE TIMELINE',
+  clue:  '"Detective Diet\'s case board is scrambled. Arrange the Sugar King\'s scheme in the correct order to expose the full story."',
+  hint:  'Click two events to swap them. Get them in the right order.',
+
+  init(area) {
+    const correct = [
+      'Sugar King buys out all\nindependent suppliers',
+      'Formula R-9 is secretly\nmodified to increase craving',
+      'Royal "gift" of 10,000 cans\nforced into every home',
+      'Citizens report they\ncannot stop consuming',
+      'Detective Diet uncovers\nthe full scheme',
+    ];
+
+    // Start shuffled (guaranteed not in order)
+    let items = [...correct];
+    do { items.sort(()=>Math.random()-.5); } while(items.join()===correct.join());
+
+    let sel = null;
+    let done = false;
+
+    const wrap=document.createElement('div');
+    wrap.className='timeline-items';
+    wrap.style.width='100%';
+
+    function render(){
+      wrap.innerHTML='';
+      items.forEach((text,i)=>{
+        const div=document.createElement('div');
+        div.className='tl-item';
+        div.dataset.idx=i;
+        const num=document.createElement('span');
+        num.className='tl-num';num.textContent=i+1;
+        const txt=document.createElement('span');
+        txt.innerHTML=text.replace('\n','<br>');
+        div.appendChild(num);div.appendChild(txt);
+
+        if(i===sel) div.style.borderColor='#f0c040';
+
+        div.onclick=()=>{
+          if(done)return;
+          if(sel===null){ sel=i; render(); }
+          else if(sel===i){ sel=null; render(); }
+          else {
+            // swap
+            [items[sel],items[i]]=[items[i],items[sel]];
+            sel=null;
+            render();
+            check();
+          }
+        };
+        wrap.appendChild(div);
+      });
+    }
+
+    function check(){
+      const isCorrect = items.join('|')===correct.join('|');
+      // Highlight correct/wrong positions
+      const divs=wrap.querySelectorAll('.tl-item');
+      let allCorrect=true;
+      items.forEach((item,i)=>{
+        if(item===correct[i]){divs[i].classList.add('correct');}
+        else{divs[i].classList.add('wrong-pos');allCorrect=false;}
+      });
+      if(allCorrect){
+        done=true;
+        $('puzzle-feedback').textContent='✦ Timeline complete! The full scheme is reconstructed.';
+        $('puzzle-feedback').style.color='#40c070';
+        setTimeout(()=>G.puzzleWin('Full timeline confirmed: the Sugar King orchestrated every step of Fizz Kingdom\'s dependence.'),1400);
+      } else {
+        $('puzzle-feedback').textContent='Some events are out of order — keep swapping.';
+        $('puzzle-feedback').style.color='#c0932a';
+        setTimeout(()=>{
+          wrap.querySelectorAll('.tl-item').forEach(d=>{d.classList.remove('correct','wrong-pos');});
+        },600);
+      }
+    }
+
+    render();
+    area.appendChild(wrap);
+  },
+},
+
+]; // end G.puzzles
+
+// ── BOSS HP display fix ───────────────────────────
+// patch updateBars to use bhp
+const origUpdate = G.battle.updateBars;
+G.battle.updateBars = function(){
+  const b = G.battle;
+  const pPct = Math.max(0,b.php/100*100);
+  const bPct = Math.max(0,b.bhp/120*100);
+  $('player-hp-bar').style.width = pPct+'%';
+  $('player-hp-text').textContent = `${Math.max(0,Math.ceil(b.php))} / 100`;
+  $('boss-hp-bar').style.width   = bPct+'%';
+  $('boss-hp-text').textContent  = `${Math.max(0,Math.ceil(b.bhp))} / 120`;
+  $('player-hp-bar').style.background = b.php>50
+    ?'linear-gradient(90deg,#20c040,#60e080)'
+    :b.php>25?'linear-gradient(90deg,#c0a020,#e0c040)'
+    :'linear-gradient(90deg,#c02020,#e04040)';
+};
+
+// ── init ─────────────────────────────────────────
+// Title screen enter handler
+$('s-title').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.querySelector('.btn-primary').click();
+});
+window.addEventListener('keydown', e=>{
+  if(e.key==='Enter'||e.key===' '){
+    const cut=$('s-cut');
+    if(cut.classList.contains('active')&&cut.onclick){ cut.onclick(); e.preventDefault(); }
+  }
+});
+</script>
+</body>
+</html>
